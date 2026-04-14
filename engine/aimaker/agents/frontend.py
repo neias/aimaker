@@ -19,6 +19,7 @@ class FrontendAgent(BaseAgent):
         working_dir: str,
         shared_contract: dict | None = None,
         policies: list[str] | None = None,
+        review_issues: list[dict] | None = None,
     ) -> dict:
         """Execute a frontend task."""
         system_prompt = self._load_system_prompt()

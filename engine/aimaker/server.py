@@ -15,8 +15,24 @@ from aimaker.graph.graph import compile_pipeline
 
 logger = logging.getLogger("aimaker.server")
 
-# Active processing tasks
+# Active processing tasks and per-project queues
 _active_tasks: dict[str, asyncio.Task] = {}
+_project_queues: dict[str, asyncio.Queue] = {}
+_project_workers: dict[str, asyncio.Task] = {}
+
+
+async def _project_worker(project_id: str):
+    """Process tasks sequentially per project."""
+    queue = _project_queues[project_id]
+    while True:
+        request = await queue.get()
+        try:
+            await _run_pipeline(request)
+        except Exception as e:
+            logger.exception(f"Queue worker error for {request.issue_id}: {e}")
+        finally:
+            _active_tasks.pop(request.issue_id, None)
+            queue.task_done()
 
 
 @asynccontextmanager
@@ -258,15 +274,25 @@ async def analyze_milestone(request: AnalyzeMilestoneRequest):
 
 @app.post("/process")
 async def process_issue(request: ProcessRequest):
-    """Start processing an issue asynchronously."""
+    """Queue an issue for processing. Tasks run sequentially per project."""
     if request.issue_id in _active_tasks:
         raise HTTPException(400, f"Issue {request.issue_id} is already being processed")
 
-    task = asyncio.create_task(_run_pipeline(request))
-    _active_tasks[request.issue_id] = task
-    task.add_done_callback(lambda t: _active_tasks.pop(request.issue_id, None))
+    project_id = request.project_id
+    _active_tasks[request.issue_id] = True  # mark as queued
 
-    return {"status": "started", "issue_id": request.issue_id}
+    # Create project queue and worker if not exists
+    if project_id not in _project_queues:
+        _project_queues[project_id] = asyncio.Queue()
+        _project_workers[project_id] = asyncio.create_task(_project_worker(project_id))
+
+    queue = _project_queues[project_id]
+    await queue.put(request)
+
+    position = queue.qsize()
+    logger.info(f"Issue {request.issue_id} queued for project {project_id} (position: {position})")
+
+    return {"status": "queued", "issue_id": request.issue_id, "queue_position": position}
 
 
 @app.get("/status/{issue_id}")
@@ -296,10 +322,12 @@ async def cancel_issue(issue_id: str):
 @app.get("/health")
 async def health():
     """Health check endpoint."""
+    queues = {pid: q.qsize() for pid, q in _project_queues.items() if q.qsize() > 0}
     return {
         "status": "ok",
         "active_tasks": len(_active_tasks),
         "active_issue_ids": list(_active_tasks.keys()),
+        "queues": queues,
     }
 
 
