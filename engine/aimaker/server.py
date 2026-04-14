@@ -126,10 +126,16 @@ class ScanRequest(BaseModel):
 
 @app.post("/scan-codebase")
 async def scan_codebase(request: ScanRequest):
-    """Scan project directories and return codebase context."""
+    """Scan project directories and return separate backend/frontend snapshots."""
     from aimaker.scanner import scan_project
-    snapshot = scan_project(request.backend_path, request.frontend_path)
-    return {"snapshot": snapshot, "length": len(snapshot)}
+    backend_snapshot = scan_project(request.backend_path, "") if request.backend_path else ""
+    frontend_snapshot = scan_project("", request.frontend_path) if request.frontend_path else ""
+    return {
+        "backend_snapshot": backend_snapshot,
+        "frontend_snapshot": frontend_snapshot,
+        "backend_length": len(backend_snapshot),
+        "frontend_length": len(frontend_snapshot),
+    }
 
 
 class AnalyzeMilestoneRequest(BaseModel):
@@ -143,7 +149,8 @@ class AnalyzeMilestoneRequest(BaseModel):
     project_description: str = ""
     backend_path: str = ""
     frontend_path: str = ""
-    codebase_snapshot: str = ""
+    codebase_snapshot_backend: str = ""
+    codebase_snapshot_frontend: str = ""
 
 
 @app.post("/analyze-milestone")
@@ -152,9 +159,15 @@ async def analyze_milestone(request: AnalyzeMilestoneRequest):
     from aimaker.agents.pm import PMAgent
     from aimaker.activity import log_activity
 
-    # Use cached snapshot if available, otherwise scan live
-    if request.codebase_snapshot:
-        codebase_context = request.codebase_snapshot
+    # Build codebase context from cached snapshots or live scan
+    snapshots = []
+    if request.codebase_snapshot_backend:
+        snapshots.append(request.codebase_snapshot_backend)
+    if request.codebase_snapshot_frontend:
+        snapshots.append(request.codebase_snapshot_frontend)
+
+    if snapshots:
+        codebase_context = "\n\n".join(snapshots)
     else:
         from aimaker.scanner import scan_project
         codebase_context = scan_project(request.backend_path, request.frontend_path)

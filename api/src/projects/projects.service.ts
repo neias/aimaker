@@ -66,12 +66,16 @@ export class ProjectsService {
         }),
       );
 
-      project.codebaseSnapshot = data.snapshot;
+      project.codebaseSnapshotBackend = data.backend_snapshot || null;
+      project.codebaseSnapshotFrontend = data.frontend_snapshot || null;
       project.codebaseScannedAt = new Date();
       await this.repo.save(project);
 
-      this.logger.log(`Codebase scanned for project ${project.name}: ${data.length} chars`);
-      return { snapshot: data.snapshot, length: data.length };
+      this.logger.log(`Codebase scanned for project ${project.name}: BE=${data.backend_length}, FE=${data.frontend_length}`);
+      return {
+        backendLength: data.backend_length,
+        frontendLength: data.frontend_length,
+      };
 
     } catch (error: any) {
       if (error?.code === 'ECONNREFUSED' || error?.message?.includes('ECONNREFUSED')) {

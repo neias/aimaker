@@ -248,9 +248,18 @@ export default function ProjectSettingsPage({
                 <p className="text-xs text-zinc-300">
                   Scanned on {new Date(project.codebaseScannedAt).toLocaleString('tr-TR')}
                 </p>
-                <p className="text-[10px] text-zinc-600">
-                  {project.codebaseSnapshot?.length?.toLocaleString() || 0} chars captured
-                </p>
+                <div className="flex gap-3 mt-0.5">
+                  {project.codebaseSnapshotBackend && (
+                    <p className="text-[10px] text-zinc-600">
+                      Backend: {project.codebaseSnapshotBackend.length.toLocaleString()} chars
+                    </p>
+                  )}
+                  {project.codebaseSnapshotFrontend && (
+                    <p className="text-[10px] text-zinc-600">
+                      Frontend: {project.codebaseSnapshotFrontend.length.toLocaleString()} chars
+                    </p>
+                  )}
+                </div>
               </div>
               <Button
                 variant="outline"
@@ -278,13 +287,23 @@ export default function ProjectSettingsPage({
               </Button>
             </div>
           )}
-          {project?.codebaseSnapshot && (
+          {project?.codebaseSnapshotBackend && (
             <details className="group">
               <summary className="text-[10px] text-zinc-600 cursor-pointer hover:text-zinc-400 transition-colors">
-                Preview snapshot
+                Backend snapshot
               </summary>
-              <pre className="mt-2 text-[10px] text-zinc-500 leading-relaxed whitespace-pre-wrap bg-white/[0.02] border border-white/[0.06] rounded-lg p-3 max-h-64 overflow-y-auto font-mono">
-                {project.codebaseSnapshot}
+              <pre className="mt-2 text-[10px] text-zinc-500 leading-relaxed whitespace-pre-wrap bg-white/[0.02] border border-white/[0.06] rounded-lg p-3 max-h-48 overflow-y-auto font-mono">
+                {project.codebaseSnapshotBackend}
+              </pre>
+            </details>
+          )}
+          {project?.codebaseSnapshotFrontend && (
+            <details className="group">
+              <summary className="text-[10px] text-zinc-600 cursor-pointer hover:text-zinc-400 transition-colors">
+                Frontend snapshot
+              </summary>
+              <pre className="mt-2 text-[10px] text-zinc-500 leading-relaxed whitespace-pre-wrap bg-white/[0.02] border border-white/[0.06] rounded-lg p-3 max-h-48 overflow-y-auto font-mono">
+                {project.codebaseSnapshotFrontend}
               </pre>
             </details>
           )}

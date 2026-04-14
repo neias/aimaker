@@ -48,7 +48,10 @@ export class Project {
   config: Record<string, unknown>;
 
   @Column({ type: 'text', nullable: true })
-  codebaseSnapshot: string;
+  codebaseSnapshotBackend: string;
+
+  @Column({ type: 'text', nullable: true })
+  codebaseSnapshotFrontend: string;
 
   @Column({ type: 'timestamptz', nullable: true })
   codebaseScannedAt: Date;

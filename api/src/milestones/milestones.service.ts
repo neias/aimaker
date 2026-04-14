@@ -81,7 +81,8 @@ export class MilestonesService {
           project_description: project.description || '',
           backend_path: project.backendPath || '',
           frontend_path: project.frontendPath || '',
-          codebase_snapshot: project.codebaseSnapshot || '',
+          codebase_snapshot_backend: project.codebaseSnapshotBackend || '',
+          codebase_snapshot_frontend: project.codebaseSnapshotFrontend || '',
         }),
       );
 
