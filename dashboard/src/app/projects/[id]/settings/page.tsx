@@ -66,7 +66,9 @@ export default function ProjectSettingsPage({
     mutationFn: () => api.projects.scan(id),
     onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ['project', id] });
-      showToast('success', `Codebase scanned: ${data.length} chars`);
+      const be = data.backendLength || 0;
+      const fe = data.frontendLength || 0;
+      showToast('success', `Codebase scanned: BE ${be.toLocaleString()} + FE ${fe.toLocaleString()} chars`);
     },
     onError: (e: Error) => showToast('error', e.message),
   });

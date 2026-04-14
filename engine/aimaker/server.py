@@ -128,8 +128,11 @@ class ScanRequest(BaseModel):
 async def scan_codebase(request: ScanRequest):
     """Scan project directories and return separate backend/frontend snapshots."""
     from aimaker.scanner import scan_project
+    import os
+    logger.info(f"Scanning codebase - backend: '{request.backend_path}' (exists: {os.path.isdir(request.backend_path) if request.backend_path else False}), frontend: '{request.frontend_path}' (exists: {os.path.isdir(request.frontend_path) if request.frontend_path else False})")
     backend_snapshot = scan_project(request.backend_path, "") if request.backend_path else ""
     frontend_snapshot = scan_project("", request.frontend_path) if request.frontend_path else ""
+    logger.info(f"Scan result - backend: {len(backend_snapshot)} chars, frontend: {len(frontend_snapshot)} chars")
     return {
         "backend_snapshot": backend_snapshot,
         "frontend_snapshot": frontend_snapshot,

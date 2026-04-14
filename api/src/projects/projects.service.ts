@@ -55,26 +55,31 @@ export class ProjectsService {
     await this.repo.remove(project);
   }
 
-  async scanCodebase(id: string): Promise<{ snapshot: string; length: number }> {
+  async scanCodebase(id: string): Promise<{ backendLength: number; frontendLength: number }> {
     const project = await this.findOne(id);
 
+    this.logger.log(`Scanning codebase for project ${project.name}: BE='${project.backendPath}', FE='${project.frontendPath}'`);
+
     try {
-      const { data } = await firstValueFrom(
+      const response = await firstValueFrom(
         this.http.post(`${this.engineUrl}/scan-codebase`, {
           backend_path: project.backendPath || '',
           frontend_path: project.frontendPath || '',
         }),
       );
 
+      const data = response.data;
+      this.logger.log(`Engine scan response keys: ${Object.keys(data)}, BE=${data.backend_length}, FE=${data.frontend_length}`);
+
       project.codebaseSnapshotBackend = data.backend_snapshot || null;
       project.codebaseSnapshotFrontend = data.frontend_snapshot || null;
       project.codebaseScannedAt = new Date();
       await this.repo.save(project);
 
-      this.logger.log(`Codebase scanned for project ${project.name}: BE=${data.backend_length}, FE=${data.frontend_length}`);
+      this.logger.log(`Codebase saved for project ${project.name}: BE=${data.backend_length}, FE=${data.frontend_length}`);
       return {
-        backendLength: data.backend_length,
-        frontendLength: data.frontend_length,
+        backendLength: data.backend_length || 0,
+        frontendLength: data.frontend_length || 0,
       };
 
     } catch (error: any) {
