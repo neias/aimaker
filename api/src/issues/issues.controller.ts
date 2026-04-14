@@ -3,6 +3,7 @@ import {
   Get,
   Post,
   Delete,
+  Patch,
   Param,
   Body,
   Query,
@@ -63,6 +64,14 @@ export class IssueDetailController {
   @Get(':id')
   findOne(@Param('id', ParseUUIDPipe) id: string) {
     return this.service.findOne(id);
+  }
+
+  @Patch(':id')
+  update(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: { title?: string; body?: string; priority?: string; enableQa?: boolean; labels?: string[] },
+  ) {
+    return this.service.update(id, body);
   }
 
   @Post(':id/analysis')

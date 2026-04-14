@@ -56,6 +56,7 @@ class PipelineState(TypedDict, total=False):
     iteration: int
     max_iterations: int
     budget_remaining_usd: float
+    enable_qa: bool
     error: str | None
 
     # Git

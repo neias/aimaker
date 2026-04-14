@@ -107,6 +107,7 @@ export class MilestonesService {
           labels: [task.agent_role, milestone.strategy].filter(Boolean),
           priority: 'P1',
           status: 'waiting',
+          enableQa: milestone.enableQa,
         });
         await this.issueRepo.save(issue);
       }

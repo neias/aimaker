@@ -50,6 +50,7 @@ export class OrchestratorService {
           priority: issue.priority || 'P1',
           max_iterations: issue.maxIterations || 3,
           token_budget_usd: issue.tokenBudgetUsd || undefined,
+          enable_qa: issue.enableQa !== false,
           project_config: {
             backend_path: project.backendPath,
             frontend_path: project.frontendPath,

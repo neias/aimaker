@@ -34,7 +34,7 @@ export default function MilestonesPage({
   const queryClient = useQueryClient();
   const [createOpen, setCreateOpen] = useState(false);
   const [expanded, setExpanded] = useState<string | null>(null);
-  const [form, setForm] = useState({ title: '', description: '', strategy: 'gsd' as 'gsd' | 'spec_kit' });
+  const [form, setForm] = useState({ title: '', description: '', strategy: 'gsd' as 'gsd' | 'spec_kit', enableQa: true });
 
   const { data: milestones = [], isLoading } = useQuery({
     queryKey: ['milestones', id],
@@ -47,7 +47,7 @@ export default function MilestonesPage({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['milestones', id] });
       setCreateOpen(false);
-      setForm({ title: '', description: '', strategy: 'gsd' });
+      setForm({ title: '', description: '', strategy: 'gsd', enableQa: true });
       showToast('success', 'Milestone created');
     },
     onError: (e: Error) => showToast('error', e.message),
@@ -295,6 +295,25 @@ export default function MilestonesPage({
             >
               {createMutation.isPending ? 'Creating...' : 'Create Milestone'}
             </Button>
+            <div className="flex items-center justify-between pt-1">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <button
+                  type="button"
+                  onClick={() => setForm({ ...form, enableQa: !form.enableQa })}
+                  className={`w-8 h-4.5 rounded-full transition-colors relative ${
+                    form.enableQa ? 'bg-violet-600' : 'bg-zinc-700'
+                  }`}
+                >
+                  <span className={`absolute top-0.5 w-3.5 h-3.5 rounded-full bg-white transition-transform ${
+                    form.enableQa ? 'left-4' : 'left-0.5'
+                  }`} />
+                </button>
+                <span className="text-xs text-zinc-400">QA Review</span>
+              </label>
+              <span className="text-[10px] text-zinc-600">
+                {form.enableQa ? 'All tasks will be QA reviewed' : 'Tasks skip QA, commit directly'}
+              </span>
+            </div>
           </div>
         </DialogContent>
       </Dialog>

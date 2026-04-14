@@ -79,6 +79,7 @@ export const api = {
     process: (id: string) => request<any>(`/issues/${id}/process`, { method: 'POST' }),
     cancel: (id: string) => request<any>(`/issues/${id}/cancel`, { method: 'POST' }),
     retry: (id: string) => request<any>(`/issues/${id}/retry`, { method: 'POST' }),
+    update: (id: string, data: any) => request<any>(`/issues/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
     delete: (id: string) => request<void>(`/issues/${id}`, { method: 'DELETE' }),
   },
   tasks: {

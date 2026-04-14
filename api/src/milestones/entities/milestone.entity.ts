@@ -46,6 +46,9 @@ export class Milestone {
   @Column({ type: 'text', nullable: true })
   specDocument: string;
 
+  @Column({ type: 'boolean', default: true })
+  enableQa: boolean;
+
   @Column({ type: 'int', default: 0 })
   totalTasks: number;
 

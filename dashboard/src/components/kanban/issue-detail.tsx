@@ -1,17 +1,21 @@
 'use client';
 
-import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useState, useEffect } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
+import { showToast } from '@/components/toast';
 import type { Issue, Task } from '@/types';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import {
   Sheet,
   SheetContent,
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet';
-import { FileText, GitBranch, ChevronDown, Brain, ScrollText } from 'lucide-react';
+import { FileText, GitBranch, ChevronDown, Brain, ScrollText, Pencil, Save, X } from 'lucide-react';
 
 const ROLE_COLORS: Record<string, string> = {
   pm: 'bg-purple-500/20 text-purple-400',
@@ -35,6 +39,9 @@ interface IssueDetailProps {
 
 export function IssueDetail({ issue, onClose }: IssueDetailProps) {
   const [activeSection, setActiveSection] = useState<string | null>(null);
+  const [editing, setEditing] = useState(false);
+  const [editForm, setEditForm] = useState({ title: '', body: '', priority: 'P1', enableQa: true });
+  const queryClient = useQueryClient();
 
   const { data: detail } = useQuery({
     queryKey: ['issue', issue?.id],
@@ -42,29 +49,62 @@ export function IssueDetail({ issue, onClose }: IssueDetailProps) {
     enabled: !!issue,
   });
 
+  // Sync edit form when issue changes
+  useEffect(() => {
+    if (detail) {
+      setEditForm({
+        title: detail.title || '',
+        body: detail.body || '',
+        priority: detail.priority || 'P1',
+        enableQa: detail.enableQa !== false,
+      });
+      setEditing(false);
+    }
+  }, [detail]);
+
+  const updateMutation = useMutation({
+    mutationFn: (data: any) => api.issues.update(issue!.id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['issue', issue?.id] });
+      queryClient.invalidateQueries({ queryKey: ['issues'] });
+      setEditing(false);
+      showToast('success', 'Task updated');
+    },
+    onError: (e: Error) => showToast('error', e.message),
+  });
+
   const tasks: Task[] = detail?.tasks || [];
+  const canEdit = issue?.status === 'waiting';
 
   const toggleSection = (section: string) => {
     setActiveSection(activeSection === section ? null : section);
   };
 
   return (
-    <Sheet open={!!issue} onOpenChange={() => { onClose(); setActiveSection(null); }}>
+    <Sheet open={!!issue} onOpenChange={() => { onClose(); setActiveSection(null); setEditing(false); }}>
       <SheetContent className="bg-[#0c0c0e] border-white/[0.06] w-[540px] sm:max-w-[540px] overflow-y-auto">
         {issue && detail && (
           <>
             <SheetHeader>
-              <SheetTitle className="text-left pr-6 text-white">
-                {issue.githubIssueNumber && (
-                  <span className="text-zinc-600 mr-2">#{issue.githubIssueNumber}</span>
-                )}
-                {issue.title}
-              </SheetTitle>
+              {editing ? (
+                <Input
+                  value={editForm.title}
+                  onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
+                  className="bg-white/[0.04] border-white/[0.08] text-base font-semibold"
+                />
+              ) : (
+                <SheetTitle className="text-left pr-6 text-white">
+                  {issue.githubIssueNumber && (
+                    <span className="text-zinc-600 mr-2">#{issue.githubIssueNumber}</span>
+                  )}
+                  {detail.title}
+                </SheetTitle>
+              )}
             </SheetHeader>
 
             <div className="mt-5 space-y-5">
               {/* Status badges */}
-              <div className="flex gap-2 flex-wrap">
+              <div className="flex gap-2 flex-wrap items-center">
                 <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-[10px] font-medium ring-1 ring-inset ${
                   issue.status === 'done' ? 'bg-emerald-500/10 text-emerald-400 ring-emerald-500/20'
                   : issue.status === 'failed' || issue.status === 'human_required' ? 'bg-red-500/10 text-red-400 ring-red-500/20'
@@ -72,24 +112,111 @@ export function IssueDetail({ issue, onClose }: IssueDetailProps) {
                 }`}>
                   {issue.status}
                 </span>
+                {editing ? (
+                  <div className="flex gap-1">
+                    {['P0', 'P1', 'P2'].map((p) => (
+                      <button
+                        key={p}
+                        onClick={() => setEditForm({ ...editForm, priority: p })}
+                        className={`px-2 py-0.5 rounded text-[10px] font-medium transition-all ${
+                          editForm.priority === p
+                            ? p === 'P0' ? 'bg-red-500/20 text-red-400 ring-1 ring-red-500/30'
+                              : p === 'P1' ? 'bg-amber-500/20 text-amber-400 ring-1 ring-amber-500/30'
+                              : 'bg-zinc-500/20 text-zinc-400 ring-1 ring-zinc-500/30'
+                            : 'text-zinc-600 bg-white/[0.04]'
+                        }`}
+                      >
+                        {p}
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-[10px] font-medium ring-1 ring-inset ${
+                    issue.priority === 'P0' ? 'bg-red-500/10 text-red-400 ring-red-500/20'
+                    : issue.priority === 'P1' ? 'bg-amber-500/10 text-amber-400 ring-amber-500/20'
+                    : 'bg-zinc-500/10 text-zinc-400 ring-zinc-500/20'
+                  }`}>
+                    {detail.priority}
+                  </span>
+                )}
                 <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-[10px] font-medium ring-1 ring-inset ${
-                  issue.priority === 'P0' ? 'bg-red-500/10 text-red-400 ring-red-500/20'
-                  : issue.priority === 'P1' ? 'bg-amber-500/10 text-amber-400 ring-amber-500/20'
-                  : 'bg-zinc-500/10 text-zinc-400 ring-zinc-500/20'
+                  detail.enableQa !== false
+                    ? 'bg-violet-500/10 text-violet-400 ring-violet-500/20'
+                    : 'bg-zinc-500/10 text-zinc-500 ring-zinc-500/20'
                 }`}>
-                  {issue.priority}
+                  {detail.enableQa !== false ? 'QA On' : 'QA Off'}
                 </span>
                 {issue.labels.map((l) => (
                   <span key={l} className="inline-flex items-center rounded-md bg-white/[0.04] px-2 py-0.5 text-[10px] text-zinc-500 ring-1 ring-inset ring-white/[0.06]">
                     {l}
                   </span>
                 ))}
+                {canEdit && !editing && (
+                  <button
+                    onClick={() => setEditing(true)}
+                    className="ml-auto flex items-center gap-1 text-[10px] text-violet-400 hover:text-violet-300 bg-violet-500/10 px-2 py-1 rounded-md font-medium"
+                  >
+                    <Pencil size={10} /> Edit
+                  </button>
+                )}
               </div>
 
               {/* Description */}
-              {issue.body && (
+              {editing ? (
+                <Textarea
+                  value={editForm.body}
+                  onChange={(e) => setEditForm({ ...editForm, body: e.target.value })}
+                  className="bg-white/[0.04] border-white/[0.08] text-xs min-h-[100px]"
+                  rows={5}
+                />
+              ) : detail.body ? (
                 <div className="text-[12px] text-zinc-400 leading-relaxed whitespace-pre-wrap rounded-lg border border-white/[0.06] bg-white/[0.02] p-3 max-h-32 overflow-y-auto">
-                  {issue.body}
+                  {detail.body}
+                </div>
+              ) : null}
+
+              {/* QA toggle in edit mode */}
+              {editing && (
+                <div className="flex items-center justify-between">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <button
+                      type="button"
+                      onClick={() => setEditForm({ ...editForm, enableQa: !editForm.enableQa })}
+                      className={`w-8 h-4.5 rounded-full transition-colors relative ${
+                        editForm.enableQa ? 'bg-violet-600' : 'bg-zinc-700'
+                      }`}
+                    >
+                      <span className={`absolute top-0.5 w-3.5 h-3.5 rounded-full bg-white transition-transform ${
+                        editForm.enableQa ? 'left-4' : 'left-0.5'
+                      }`} />
+                    </button>
+                    <span className="text-xs text-zinc-400">QA Review</span>
+                  </label>
+                  <span className="text-[10px] text-zinc-600">
+                    {editForm.enableQa ? 'Agent will review after execution' : 'Skip QA, commit directly'}
+                  </span>
+                </div>
+              )}
+
+              {/* Save/Cancel buttons */}
+              {editing && (
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    className="gap-1.5 bg-violet-600 hover:bg-violet-500 text-white"
+                    onClick={() => updateMutation.mutate(editForm)}
+                    disabled={updateMutation.isPending}
+                  >
+                    <Save size={12} /> {updateMutation.isPending ? 'Saving...' : 'Save'}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="gap-1.5 border-white/[0.08] text-zinc-400"
+                    onClick={() => setEditing(false)}
+                  >
+                    <X size={12} /> Cancel
+                  </Button>
                 </div>
               )}
 
@@ -151,7 +278,7 @@ export function IssueDetail({ issue, onClose }: IssueDetailProps) {
                 </div>
               )}
 
-              {/* Spec Document (Spec-Kit only) */}
+              {/* Spec Document */}
               {detail.specDocument && (
                 <div className="rounded-lg border border-violet-500/20 overflow-hidden">
                   <button

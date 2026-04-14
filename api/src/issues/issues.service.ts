@@ -48,6 +48,22 @@ export class IssuesService {
     return this.repo.save(issue);
   }
 
+  async update(id: string, data: Partial<{
+    title: string;
+    body: string;
+    priority: string;
+    enableQa: boolean;
+    labels: string[];
+  }>): Promise<Issue> {
+    const issue = await this.findOne(id);
+    if (data.title !== undefined) issue.title = data.title;
+    if (data.body !== undefined) issue.body = data.body;
+    if (data.priority !== undefined) issue.priority = data.priority;
+    if (data.enableQa !== undefined) issue.enableQa = data.enableQa;
+    if (data.labels !== undefined) issue.labels = data.labels;
+    return this.repo.save(issue);
+  }
+
   async remove(id: string): Promise<void> {
     const issue = await this.findOne(id);
     await this.repo.remove(issue);

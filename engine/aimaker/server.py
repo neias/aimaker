@@ -69,6 +69,7 @@ class ProcessRequest(BaseModel):
     priority: str = "P1"
     max_iterations: int = 3
     token_budget_usd: float | None = None
+    enable_qa: bool = True
     project_config: ProjectConfig = ProjectConfig()
 
 
@@ -92,6 +93,7 @@ async def _run_pipeline(request: ProcessRequest):
             "iteration": 0,
             "max_iterations": request.max_iterations,
             "budget_remaining_usd": request.token_budget_usd or settings.default_token_budget_usd,
+            "enable_qa": request.enable_qa,
             "checkpoints": [],
             "backend_tasks": [],
             "frontend_tasks": [],

@@ -31,7 +31,7 @@ export default function ProjectDetailPage({
   const queryClient = useQueryClient();
   const [selectedIssue, setSelectedIssue] = useState<Issue | null>(null);
   const [addOpen, setAddOpen] = useState(false);
-  const [issueForm, setIssueForm] = useState({ title: '', body: '', priority: 'P1' });
+  const [issueForm, setIssueForm] = useState({ title: '', body: '', priority: 'P1', enableQa: true });
   const { updateIssueStatus } = useIssueStore();
 
   const { data: project } = useQuery({
@@ -59,7 +59,7 @@ export default function ProjectDetailPage({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['issues', id] });
       setAddOpen(false);
-      setIssueForm({ title: '', body: '', priority: 'P1' });
+      setIssueForm({ title: '', body: '', priority: 'P1', enableQa: true });
       showToast('success', 'Task added to Waiting');
     },
     onError: (e: Error) => showToast('error', e.message),
@@ -261,6 +261,25 @@ export default function ProjectDetailPage({
                   </button>
                 ))}
               </div>
+            </div>
+            <div className="flex items-center justify-between">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <button
+                  type="button"
+                  onClick={() => setIssueForm({ ...issueForm, enableQa: !issueForm.enableQa })}
+                  className={`w-8 h-4.5 rounded-full transition-colors relative ${
+                    issueForm.enableQa ? 'bg-violet-600' : 'bg-zinc-700'
+                  }`}
+                >
+                  <span className={`absolute top-0.5 w-3.5 h-3.5 rounded-full bg-white transition-transform ${
+                    issueForm.enableQa ? 'left-4' : 'left-0.5'
+                  }`} />
+                </button>
+                <span className="text-xs text-zinc-400">QA Review</span>
+              </label>
+              <span className="text-[10px] text-zinc-600">
+                {issueForm.enableQa ? 'Agent will review code after execution' : 'Skip QA, commit directly'}
+              </span>
             </div>
             <Button
               onClick={() => createIssueMutation.mutate(issueForm)}

@@ -86,7 +86,13 @@ def build_direct_pipeline() -> StateGraph:
 
     graph.set_entry_point("create_git_branch")
     graph.add_edge("create_git_branch", "execute_direct_task")
-    graph.add_edge("execute_direct_task", "run_qa")
+
+    # After task: run QA or skip directly to commit
+    graph.add_conditional_edges(
+        "execute_direct_task",
+        lambda state: "run_qa" if state.get("enable_qa", True) else "commit_and_close",
+        {"run_qa": "run_qa", "commit_and_close": "commit_and_close"},
+    )
 
     graph.add_conditional_edges(
         "run_qa",

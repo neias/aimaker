@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsArray, IsIn, IsNumber } from 'class-validator';
+import { IsString, IsOptional, IsArray, IsIn, IsNumber, IsBoolean } from 'class-validator';
 
 export class CreateIssueDto {
   @IsString()
@@ -28,4 +28,8 @@ export class CreateIssueDto {
   @IsOptional()
   @IsNumber()
   maxIterations?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  enableQa?: boolean;
 }

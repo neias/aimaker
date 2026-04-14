@@ -59,6 +59,9 @@ export class Issue {
   @Column({ length: 30, nullable: true })
   assignedAgent: string;
 
+  @Column({ type: 'boolean', default: true })
+  enableQa: boolean;
+
   @Column({ type: 'int', default: 0 })
   iterationCount: number;
 

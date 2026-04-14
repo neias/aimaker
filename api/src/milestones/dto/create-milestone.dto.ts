@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsIn } from 'class-validator';
+import { IsString, IsOptional, IsIn, IsBoolean } from 'class-validator';
 
 export class CreateMilestoneDto {
   @IsString()
@@ -10,4 +10,8 @@ export class CreateMilestoneDto {
 
   @IsIn(['gsd', 'spec_kit'])
   strategy: 'gsd' | 'spec_kit';
+
+  @IsOptional()
+  @IsBoolean()
+  enableQa?: boolean;
 }
