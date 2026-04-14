@@ -26,7 +26,20 @@ async def lifespan(app: FastAPI):
     await close_redis()
 
 
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
+
 app = FastAPI(title="AIMAKER Engine", lifespan=lifespan)
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request, exc):
+    errors = exc.errors()
+    logger.error(f"Validation error: {errors}")
+    return JSONResponse(
+        status_code=422,
+        content={"detail": "Validation error", "errors": [str(e) for e in errors]},
+    )
+
 pipeline = compile_pipeline()
 
 
@@ -106,6 +119,19 @@ async def _run_pipeline(request: ProcessRequest):
         )
 
 
+class ScanRequest(BaseModel):
+    backend_path: str = ""
+    frontend_path: str = ""
+
+
+@app.post("/scan-codebase")
+async def scan_codebase(request: ScanRequest):
+    """Scan project directories and return codebase context."""
+    from aimaker.scanner import scan_project
+    snapshot = scan_project(request.backend_path, request.frontend_path)
+    return {"snapshot": snapshot, "length": len(snapshot)}
+
+
 class AnalyzeMilestoneRequest(BaseModel):
     milestone_id: str
     project_id: str
@@ -115,6 +141,9 @@ class AnalyzeMilestoneRequest(BaseModel):
     policies: list[str] = []
     project_type: str = "fullstack"
     project_description: str = ""
+    backend_path: str = ""
+    frontend_path: str = ""
+    codebase_snapshot: str = ""
 
 
 @app.post("/analyze-milestone")
@@ -122,6 +151,13 @@ async def analyze_milestone(request: AnalyzeMilestoneRequest):
     """Run PM Agent to analyze a milestone and return task breakdown."""
     from aimaker.agents.pm import PMAgent
     from aimaker.activity import log_activity
+
+    # Use cached snapshot if available, otherwise scan live
+    if request.codebase_snapshot:
+        codebase_context = request.codebase_snapshot
+    else:
+        from aimaker.scanner import scan_project
+        codebase_context = scan_project(request.backend_path, request.frontend_path)
 
     await log_activity(
         project_id=request.project_id,
@@ -134,6 +170,8 @@ async def analyze_milestone(request: AnalyzeMilestoneRequest):
             "description_length": len(request.description),
             "policies_count": len(request.policies),
             "policies": request.policies[:5],
+            "codebase_scanned": bool(codebase_context),
+            "codebase_context_length": len(codebase_context),
         },
     )
 
@@ -154,6 +192,7 @@ async def analyze_milestone(request: AnalyzeMilestoneRequest):
             policies=request.policies,
             project_type=request.project_type,
             project_description=request.project_description,
+            codebase_context=codebase_context,
         )
 
         analysis = result.get("analysis", "")

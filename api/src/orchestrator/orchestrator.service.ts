@@ -46,10 +46,10 @@ export class OrchestratorService {
           project_id: issue.projectId,
           title: issue.title,
           body: issue.body,
-          labels: issue.labels,
-          priority: issue.priority,
-          max_iterations: issue.maxIterations,
-          token_budget_usd: issue.tokenBudgetUsd,
+          labels: (issue.labels || []).filter(Boolean),
+          priority: issue.priority || 'P1',
+          max_iterations: issue.maxIterations || 3,
+          token_budget_usd: issue.tokenBudgetUsd || undefined,
           project_config: {
             backend_path: project.backendPath,
             frontend_path: project.frontendPath,
@@ -62,19 +62,27 @@ export class OrchestratorService {
       );
       return data;
     } catch (error: any) {
-      this.logger.error(`Engine process failed for issue ${issueId}`, error);
       await this.issuesService.updateStatus(issueId, 'failed');
 
-      const isConnectionError =
-        error?.code === 'ECONNREFUSED' ||
-        error?.message?.includes('ECONNREFUSED') ||
-        error?.response?.status === undefined;
-
-      if (isConnectionError) {
-        throw new BadGatewayException(
-          'Engine is not running. Start it with: cd engine && aimaker-engine serve',
-        );
+      // Extract meaningful error message
+      let errorMessage = 'Unknown error';
+      try {
+        if (error?.response?.data) {
+          const data = error.response.data;
+          errorMessage = data?.detail || data?.message || (typeof data === 'string' ? data : JSON.stringify(data));
+        } else if (error?.code === 'ECONNREFUSED') {
+          throw new BadGatewayException(
+            'Engine is not running. Start it with: cd engine && aimaker-engine serve',
+          );
+        } else {
+          errorMessage = error?.message || String(error);
+        }
+      } catch (parseErr) {
+        if (parseErr instanceof BadGatewayException) throw parseErr;
+        errorMessage = String(error);
       }
+
+      this.logger.error(`Engine process failed for issue ${issueId}: ${errorMessage}`);
 
       if (!project.backendPath && !project.frontendPath) {
         throw new BadRequestException(
@@ -82,9 +90,7 @@ export class OrchestratorService {
         );
       }
 
-      throw new BadGatewayException(
-        `Engine error: ${error?.response?.data?.detail || error?.message || 'Unknown error'}`,
-      );
+      throw new BadGatewayException(`Engine error: ${errorMessage}`);
     }
   }
 

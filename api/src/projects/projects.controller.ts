@@ -41,6 +41,11 @@ export class ProjectsController {
     return this.service.update(id, dto);
   }
 
+  @Post(':id/scan')
+  scanCodebase(@Param('id', ParseUUIDPipe) id: string) {
+    return this.service.scanCodebase(id);
+  }
+
   @Delete(':id')
   remove(@Param('id', ParseUUIDPipe) id: string) {
     return this.service.remove(id);

@@ -49,6 +49,7 @@ class PMAgent(BaseAgent):
         policies: list[str] | None = None,
         project_type: str = "fullstack",
         project_description: str = "",
+        codebase_context: str = "",
     ) -> dict:
         """Analyze an issue and produce task breakdown."""
         system_prompt = self._load_system_prompt()
@@ -123,9 +124,22 @@ class PMAgent(BaseAgent):
 - "backend_tasks": list of backend tasks, each with agent_role="backend"
 - "frontend_tasks": list of frontend tasks, each with agent_role="frontend" """
 
+        codebase_section = ""
+        if codebase_context:
+            codebase_section = f"""{codebase_context}
+
+IMPORTANT: The project already has existing code. You MUST:
+- Review the file structure and tech stack above before creating tasks
+- Create tasks that work WITH the existing codebase, not from scratch
+- Reference existing files in files_to_modify (not files_to_create) when they already exist
+- Follow the patterns, conventions, and dependencies already in use
+- Do NOT suggest installing packages that are already in package.json/requirements.txt
+"""
+
         prompt = f"""Analyze the following and create a task breakdown.
 
 {project_context}
+{codebase_section}
 {type_instructions}
 
 ## Milestone / Issue

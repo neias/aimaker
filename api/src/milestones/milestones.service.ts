@@ -79,6 +79,9 @@ export class MilestonesService {
           policies: policyRules,
           project_type: project.projectType || 'fullstack',
           project_description: project.description || '',
+          backend_path: project.backendPath || '',
+          frontend_path: project.frontendPath || '',
+          codebase_snapshot: project.codebaseSnapshot || '',
         }),
       );
 
@@ -98,9 +101,9 @@ export class MilestonesService {
         const issue = this.issueRepo.create({
           projectId: milestone.projectId,
           milestoneId: id,
-          title: task.title || task.id,
+          title: task.title || task.id || 'Untitled task',
           body: task.description || '',
-          labels: [task.agent_role, milestone.strategy],
+          labels: [task.agent_role, milestone.strategy].filter(Boolean),
           priority: 'P1',
           status: 'waiting',
         });

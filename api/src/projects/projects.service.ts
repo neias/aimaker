@@ -1,16 +1,27 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadGatewayException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { HttpService } from '@nestjs/axios';
+import { ConfigService } from '@nestjs/config';
+import { firstValueFrom } from 'rxjs';
 import { Project } from './entities/project.entity';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
 
 @Injectable()
 export class ProjectsService {
+  private readonly logger = new Logger(ProjectsService.name);
+  private readonly engineUrl: string;
+
   constructor(
     @InjectRepository(Project)
     private readonly repo: Repository<Project>,
-  ) {}
+    private readonly http: HttpService,
+    private readonly config: ConfigService,
+  ) {
+    const port = this.config.get('ENGINE_PORT', '8100');
+    this.engineUrl = `http://localhost:${port}`;
+  }
 
   async create(dto: CreateProjectDto): Promise<Project> {
     const project = this.repo.create({
@@ -42,5 +53,31 @@ export class ProjectsService {
   async remove(id: string): Promise<void> {
     const project = await this.findOne(id);
     await this.repo.remove(project);
+  }
+
+  async scanCodebase(id: string): Promise<{ snapshot: string; length: number }> {
+    const project = await this.findOne(id);
+
+    try {
+      const { data } = await firstValueFrom(
+        this.http.post(`${this.engineUrl}/scan-codebase`, {
+          backend_path: project.backendPath || '',
+          frontend_path: project.frontendPath || '',
+        }),
+      );
+
+      project.codebaseSnapshot = data.snapshot;
+      project.codebaseScannedAt = new Date();
+      await this.repo.save(project);
+
+      this.logger.log(`Codebase scanned for project ${project.name}: ${data.length} chars`);
+      return { snapshot: data.snapshot, length: data.length };
+
+    } catch (error: any) {
+      if (error?.code === 'ECONNREFUSED' || error?.message?.includes('ECONNREFUSED')) {
+        throw new BadGatewayException('Engine is not running. Start it with: cd engine && aimaker-engine serve');
+      }
+      throw new BadGatewayException(`Scan failed: ${error?.message || 'Unknown error'}`);
+    }
   }
 }

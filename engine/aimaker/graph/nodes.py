@@ -96,18 +96,28 @@ async def execute_direct_task(state: PipelineState) -> dict:
         "new_status": "processing",
     }, issue_id=issue_id)
 
-    # Use backend agent by default for direct tasks (it has full file access)
-    agent = BackendAgent()
-    task_prompt = f"# Task\n{title}\n\n## Details\n{body}" if body else title
+    # Pick agent based on project type and available paths
+    backend_path = state.get("backend_path", "")
+    frontend_path = state.get("frontend_path", "")
+
+    if frontend_path and not backend_path:
+        agent = FrontendAgent(project_id=project_id, issue_id=issue_id)
+        agent_role = "frontend"
+        working_dir = frontend_path
+    elif backend_path and not frontend_path:
+        agent = BackendAgent(project_id=project_id, issue_id=issue_id)
+        agent_role = "backend"
+        working_dir = backend_path
+    else:
+        # Fullstack: default to backend agent with backend path
+        agent = BackendAgent(project_id=project_id, issue_id=issue_id)
+        agent_role = "backend"
+        working_dir = backend_path or frontend_path
 
     await publish_event(project_id, "task:started", {
         "task_id": "direct",
-        "agent_role": "backend",
+        "agent_role": agent_role,
     }, issue_id=issue_id)
-
-    backend_path = state.get("backend_path", "")
-    frontend_path = state.get("frontend_path", "")
-    working_dir = backend_path or frontend_path
 
     result = await agent.execute(
         task={"id": "direct", "title": title, "description": body or title},
@@ -123,7 +133,7 @@ async def execute_direct_task(state: PipelineState) -> dict:
     event = "task:completed" if result.get("success") else "task:failed"
     await publish_event(project_id, event, {
         "task_id": "direct",
-        "agent_role": "backend",
+        "agent_role": agent_role,
         "duration_seconds": result.get("duration_seconds"),
         "error": result.get("error"),
     }, issue_id=issue_id)

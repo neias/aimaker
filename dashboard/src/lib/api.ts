@@ -64,6 +64,7 @@ export const api = {
     create: (data: any) => request<any>('/projects', { method: 'POST', body: JSON.stringify(data) }),
     update: (id: string, data: any) => request<any>(`/projects/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
     delete: (id: string) => request<void>(`/projects/${id}`, { method: 'DELETE' }),
+    scan: (id: string) => request<{ snapshot: string; length: number }>(`/projects/${id}/scan`, { method: 'POST' }),
   },
   issues: {
     list: (projectId: string, status?: string) => {

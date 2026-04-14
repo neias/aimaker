@@ -47,6 +47,12 @@ export class Project {
   @Column({ type: 'jsonb', default: {} })
   config: Record<string, unknown>;
 
+  @Column({ type: 'text', nullable: true })
+  codebaseSnapshot: string;
+
+  @Column({ type: 'timestamptz', nullable: true })
+  codebaseScannedAt: Date;
+
   @CreateDateColumn()
   createdAt: Date;
 

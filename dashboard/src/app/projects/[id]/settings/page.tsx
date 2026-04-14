@@ -5,7 +5,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Save, Trash2, ArrowLeft } from 'lucide-react';
+import { Save, Trash2, ArrowLeft, ScanSearch, CheckCircle } from 'lucide-react';
+import { showToast } from '@/components/toast';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
@@ -59,6 +60,15 @@ export default function ProjectSettingsPage({
       queryClient.invalidateQueries({ queryKey: ['project', id] });
       queryClient.invalidateQueries({ queryKey: ['projects'] });
     },
+  });
+
+  const scanMutation = useMutation({
+    mutationFn: () => api.projects.scan(id),
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ['project', id] });
+      showToast('success', `Codebase scanned: ${data.length} chars`);
+    },
+    onError: (e: Error) => showToast('error', e.message),
   });
 
   const deleteMutation = useMutation({
@@ -221,6 +231,63 @@ export default function ProjectSettingsPage({
               className="bg-white/[0.04] border-white/[0.08] font-mono text-xs w-48"
             />
           </div>
+        </div>
+      </section>
+
+      {/* Codebase Scan */}
+      <section className="rounded-xl border border-white/[0.06] bg-white/[0.02] overflow-hidden">
+        <div className="px-5 py-4 border-b border-white/[0.06]">
+          <h2 className="text-sm font-semibold text-white">Codebase Snapshot</h2>
+          <p className="text-xs text-zinc-500 mt-0.5">Scan project files so AI agents understand your existing code. Stored in DB — no need to rescan each time.</p>
+        </div>
+        <div className="p-5 space-y-4">
+          {project?.codebaseScannedAt ? (
+            <div className="flex items-center gap-3">
+              <CheckCircle size={14} className="text-emerald-400 shrink-0" />
+              <div className="flex-1">
+                <p className="text-xs text-zinc-300">
+                  Scanned on {new Date(project.codebaseScannedAt).toLocaleString('tr-TR')}
+                </p>
+                <p className="text-[10px] text-zinc-600">
+                  {project.codebaseSnapshot?.length?.toLocaleString() || 0} chars captured
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5 border-white/[0.08] bg-white/[0.02] text-zinc-400 hover:text-white hover:bg-white/[0.06]"
+                onClick={() => scanMutation.mutate()}
+                disabled={scanMutation.isPending}
+              >
+                <ScanSearch size={13} className={scanMutation.isPending ? 'animate-spin' : ''} />
+                {scanMutation.isPending ? 'Scanning...' : 'Rescan'}
+              </Button>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center py-6">
+              <ScanSearch size={20} className="text-zinc-600 mb-2" />
+              <p className="text-xs text-zinc-500 mb-3">No snapshot yet. Scan to give agents codebase context.</p>
+              <Button
+                size="sm"
+                className="gap-1.5 bg-violet-600 hover:bg-violet-500 text-white"
+                onClick={() => scanMutation.mutate()}
+                disabled={scanMutation.isPending}
+              >
+                <ScanSearch size={13} className={scanMutation.isPending ? 'animate-spin' : ''} />
+                {scanMutation.isPending ? 'Scanning...' : 'Scan Codebase'}
+              </Button>
+            </div>
+          )}
+          {project?.codebaseSnapshot && (
+            <details className="group">
+              <summary className="text-[10px] text-zinc-600 cursor-pointer hover:text-zinc-400 transition-colors">
+                Preview snapshot
+              </summary>
+              <pre className="mt-2 text-[10px] text-zinc-500 leading-relaxed whitespace-pre-wrap bg-white/[0.02] border border-white/[0.06] rounded-lg p-3 max-h-64 overflow-y-auto font-mono">
+                {project.codebaseSnapshot}
+              </pre>
+            </details>
+          )}
         </div>
       </section>
 
