@@ -113,6 +113,8 @@ class AnalyzeMilestoneRequest(BaseModel):
     description: str = ""
     strategy: str = "gsd"
     policies: list[str] = []
+    project_type: str = "fullstack"
+    project_description: str = ""
 
 
 @app.post("/analyze-milestone")
@@ -139,13 +141,36 @@ async def analyze_milestone(request: AnalyzeMilestoneRequest):
         project_id=request.project_id,
         milestone_id=request.milestone_id,
     )
-    result = await agent.analyze(
-        title=request.title,
-        body=request.description,
-        labels=[],
-        strategy=request.strategy,
-        policies=request.policies,
-    )
+
+    # Retry up to 2 times on failure
+    result = None
+    max_retries = 2
+    for attempt in range(max_retries + 1):
+        result = await agent.analyze(
+            title=request.title,
+            body=request.description,
+            labels=[],
+            strategy=request.strategy,
+            policies=request.policies,
+            project_type=request.project_type,
+            project_description=request.project_description,
+        )
+
+        analysis = result.get("analysis", "")
+        has_tasks = len(result.get("backend_tasks", [])) + len(result.get("frontend_tasks", [])) > 0
+
+        if analysis and analysis != "Analysis failed" and has_tasks:
+            break
+
+        if attempt < max_retries:
+            await log_activity(
+                project_id=request.project_id,
+                event="milestone.analyze.retry",
+                message=f"Analysis attempt {attempt + 1} failed, retrying...",
+                level="warn",
+                milestone_id=request.milestone_id,
+                metadata={"attempt": attempt + 1, "analysis": analysis},
+            )
 
     backend_tasks = result.get("backend_tasks", [])
     frontend_tasks = result.get("frontend_tasks", [])
