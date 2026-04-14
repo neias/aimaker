@@ -15,6 +15,27 @@ STRATEGIES = {
     "spec_kit": SpecKitStrategy,
 }
 
+PROJECT_TYPE_INSTRUCTIONS = {
+    "frontend": """## Project Type: Frontend Only
+This is a frontend-only project. Do NOT create any backend tasks.
+- All tasks must have agent_role="frontend"
+- "backend_tasks" must be an empty array []
+- "shared_contract" should be null (no API to define)
+- Focus on UI components, state management, styling, and client-side logic.""",
+
+    "backend": """## Project Type: Backend Only
+This is a backend-only project. Do NOT create any frontend tasks.
+- All tasks must have agent_role="backend"
+- "frontend_tasks" must be an empty array []
+- Focus on API endpoints, database schemas, business logic, and server-side code.""",
+
+    "fullstack": """## Project Type: Fullstack
+This project has both backend and frontend.
+- Create tasks for both backend and frontend agents
+- Define a "shared_contract" with API endpoints and types for communication between them
+- Backend tasks should be ordered before frontend tasks (frontend depends on API).""",
+}
+
 
 class PMAgent(BaseAgent):
     role = "pm"
@@ -26,6 +47,8 @@ class PMAgent(BaseAgent):
         labels: list[str],
         strategy: str = "gsd",
         policies: list[str] | None = None,
+        project_type: str = "fullstack",
+        project_description: str = "",
     ) -> dict:
         """Analyze an issue and produce task breakdown."""
         system_prompt = self._load_system_prompt()
@@ -35,25 +58,43 @@ class PMAgent(BaseAgent):
         strategy_prompt = strategy_cls.get_extraction_prompt()
         task_format = strategy_cls.get_task_format()
 
+        type_instructions = PROJECT_TYPE_INSTRUCTIONS.get(project_type, PROJECT_TYPE_INSTRUCTIONS["fullstack"])
+
+        project_context = ""
+        if project_description:
+            project_context = f"""## Project Context
+{project_description}
+"""
+
         spec_section = ""
         if strategy == "spec_kit":
-            spec_section = """
+            # Adapt spec sections based on project type
+            design_sections = ""
+            if project_type in ("backend", "fullstack"):
+                design_sections += """
+  ### Data Model Changes
+  Database/schema changes needed.
+  ### API Design
+  New or modified endpoints with request/response schemas."""
+            if project_type in ("frontend", "fullstack"):
+                design_sections += """
+  ### Frontend Changes
+  Component hierarchy, state management, user flows."""
+            if project_type == "fullstack":
+                design_sections += """
+  ### Data Flow
+  How data moves through the system from user action to persistence and back."""
+
+            spec_section = f"""
 - "spec_document": A detailed RFC-style technical specification document in Markdown format containing:
   ## 1. Problem Statement
-  What problem does this issue solve? What is the current behavior vs desired behavior?
+  What problem does this solve? Current vs desired behavior.
 
   ## 2. Proposed Solution
   High-level description of the approach.
 
   ## 3. Technical Design
-  ### 3.1 Data Model Changes
-  Database/schema changes needed.
-  ### 3.2 API Design
-  New or modified endpoints with request/response schemas.
-  ### 3.3 Frontend Changes
-  Component hierarchy, state management, user flows.
-  ### 3.4 Data Flow
-  How data moves through the system from user action to persistence and back.
+{design_sections}
 
   ## 4. Error Handling
   Edge cases, error states, fallback behaviors.
@@ -62,18 +103,35 @@ class PMAgent(BaseAgent):
   Input validation, authorization, data exposure risks.
 
   ## 6. Testing Strategy
-  What should be tested: unit tests, integration tests, edge cases.
-
-  ## 7. Migration & Rollback
-  How to deploy safely and roll back if needed.
+  What should be tested and how.
 """
 
-        prompt = f"""Analyze the following GitHub issue and create a task breakdown.
+        # Build output format based on project type
+        if project_type == "frontend":
+            output_fields = """- "analysis": what needs to be done
+- "frontend_tasks": list of frontend tasks, each with agent_role="frontend"
+- "backend_tasks": [] (empty, frontend-only project)
+- "shared_contract": null"""
+        elif project_type == "backend":
+            output_fields = """- "analysis": what needs to be done
+- "backend_tasks": list of backend tasks, each with agent_role="backend"
+- "frontend_tasks": [] (empty, backend-only project)
+- "shared_contract": null"""
+        else:
+            output_fields = """- "analysis": what needs to be done
+- "shared_contract": API contract with "api_endpoints" (method, path, request_body, response_body) and "types" (name, fields)
+- "backend_tasks": list of backend tasks, each with agent_role="backend"
+- "frontend_tasks": list of frontend tasks, each with agent_role="frontend" """
 
-## Issue
+        prompt = f"""Analyze the following and create a task breakdown.
+
+{project_context}
+{type_instructions}
+
+## Milestone / Issue
 **Title:** {title}
 **Labels:** {', '.join(labels) if labels else 'none'}
-**Body:**
+**Description:**
 {body or 'No description provided.'}
 
 ## Strategy Instructions
@@ -84,10 +142,7 @@ class PMAgent(BaseAgent):
 
 ## Required Output
 Respond with a JSON object containing:
-- "analysis": brief analysis of what needs to be done (2-3 sentences for GSD, detailed paragraph for Spec-Kit)
-- "shared_contract": API contract between backend and frontend with "api_endpoints" (method, path, request_body, response_body) and "types" (name, fields)
-- "backend_tasks": list of backend tasks following the format above, each with agent_role="backend"
-- "frontend_tasks": list of frontend tasks following the format above, each with agent_role="frontend"
+{output_fields}
 {spec_section}
 Output ONLY the JSON, wrapped in ```json``` markers."""
 

@@ -31,6 +31,14 @@ export class CreateProjectDto {
   baseBranch?: string;
 
   @IsOptional()
+  @IsIn(['frontend', 'backend', 'fullstack'])
+  projectType?: 'frontend' | 'backend' | 'fullstack';
+
+  @IsOptional()
+  @IsString()
+  description?: string;
+
+  @IsOptional()
   @IsIn(['gsd', 'spec_kit'])
   strategy?: 'gsd' | 'spec_kit';
 }

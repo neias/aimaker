@@ -31,6 +31,8 @@ export default function ProjectSettingsPage({
     backendPath: '',
     frontendPath: '',
     baseBranch: 'main',
+    projectType: 'fullstack' as 'frontend' | 'backend' | 'fullstack',
+    description: '',
     strategy: 'gsd',
   });
 
@@ -44,6 +46,8 @@ export default function ProjectSettingsPage({
         backendPath: project.backendPath || '',
         frontendPath: project.frontendPath || '',
         baseBranch: project.baseBranch || 'main',
+        projectType: project.projectType || 'fullstack',
+        description: project.description || '',
         strategy: project.strategy || 'gsd',
       });
     }
@@ -121,6 +125,34 @@ export default function ProjectSettingsPage({
                 className="bg-white/[0.04] border-white/[0.08] font-mono text-xs"
               />
             </div>
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-zinc-400">Project Type</label>
+            <div className="grid grid-cols-3 gap-2">
+              {(['frontend', 'backend', 'fullstack'] as const).map((t) => (
+                <button
+                  key={t}
+                  onClick={() => setForm({ ...form, projectType: t })}
+                  className={`rounded-lg border p-2.5 text-center transition-all ${
+                    form.projectType === t
+                      ? 'border-violet-500/50 bg-violet-500/10'
+                      : 'border-white/[0.06] bg-white/[0.02] hover:border-white/[0.12]'
+                  }`}
+                >
+                  <p className="text-xs font-semibold text-white">{t === 'fullstack' ? 'Full Stack' : t === 'frontend' ? 'Frontend' : 'Backend'}</p>
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-zinc-400">Description</label>
+            <textarea
+              placeholder="What is this project? Tech stack, purpose, key features..."
+              value={form.description}
+              onChange={(e) => setForm({ ...form, description: e.target.value })}
+              className="flex min-h-[80px] w-full rounded-md border bg-white/[0.04] border-white/[0.08] px-3 py-2 text-xs text-zinc-300 placeholder:text-zinc-600 focus:border-violet-500/50 focus:outline-none"
+              rows={3}
+            />
           </div>
         </div>
       </section>

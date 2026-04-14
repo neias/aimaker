@@ -6,6 +6,7 @@ import { api } from '@/lib/api';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import {
   Dialog,
   DialogContent,
@@ -23,6 +24,8 @@ export default function ProjectsPage() {
     githubRepo: '',
     backendPath: '',
     frontendPath: '',
+    projectType: 'fullstack' as 'frontend' | 'backend' | 'fullstack',
+    description: '',
     strategy: 'gsd',
   });
 
@@ -36,7 +39,7 @@ export default function ProjectsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['projects'] });
       setOpen(false);
-      setForm({ name: '', slug: '', githubRepo: '', backendPath: '', frontendPath: '', strategy: 'gsd' });
+      setForm({ name: '', slug: '', githubRepo: '', backendPath: '', frontendPath: '', projectType: 'fullstack', description: '', strategy: 'gsd' });
     },
   });
 
@@ -163,25 +166,57 @@ export default function ProjectsPage() {
                 className="bg-white/[0.04] border-white/[0.08]"
               />
             </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-zinc-400">Project Type</label>
+              <div className="grid grid-cols-3 gap-2">
+                {(['frontend', 'backend', 'fullstack'] as const).map((t) => (
+                  <button
+                    key={t}
+                    onClick={() => setForm({ ...form, projectType: t })}
+                    className={`rounded-lg border p-2.5 text-center transition-all ${
+                      form.projectType === t
+                        ? 'border-violet-500/50 bg-violet-500/10'
+                        : 'border-white/[0.06] bg-white/[0.02] hover:border-white/[0.12]'
+                    }`}
+                  >
+                    <p className="text-xs font-semibold text-white">{t === 'fullstack' ? 'Full Stack' : t === 'frontend' ? 'Frontend' : 'Backend'}</p>
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-zinc-400">Project Description</label>
+              <Textarea
+                placeholder="What is this project? Tech stack, purpose, key features..."
+                value={form.description}
+                onChange={(e) => setForm({ ...form, description: e.target.value })}
+                className="bg-white/[0.04] border-white/[0.08] text-xs"
+                rows={3}
+              />
+            </div>
             <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <label className="text-xs font-medium text-zinc-400">Backend Path</label>
-                <Input
-                  placeholder="/path/to/backend"
-                  value={form.backendPath}
-                  onChange={(e) => setForm({ ...form, backendPath: e.target.value })}
-                  className="bg-white/[0.04] border-white/[0.08] text-xs"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-xs font-medium text-zinc-400">Frontend Path</label>
-                <Input
-                  placeholder="/path/to/frontend"
-                  value={form.frontendPath}
-                  onChange={(e) => setForm({ ...form, frontendPath: e.target.value })}
-                  className="bg-white/[0.04] border-white/[0.08] text-xs"
-                />
-              </div>
+              {form.projectType !== 'frontend' && (
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-zinc-400">Backend Path</label>
+                  <Input
+                    placeholder="/path/to/backend"
+                    value={form.backendPath}
+                    onChange={(e) => setForm({ ...form, backendPath: e.target.value })}
+                    className="bg-white/[0.04] border-white/[0.08] text-xs"
+                  />
+                </div>
+              )}
+              {form.projectType !== 'backend' && (
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-zinc-400">Frontend Path</label>
+                  <Input
+                    placeholder="/path/to/frontend"
+                    value={form.frontendPath}
+                    onChange={(e) => setForm({ ...form, frontendPath: e.target.value })}
+                    className="bg-white/[0.04] border-white/[0.08] text-xs"
+                  />
+                </div>
+              )}
             </div>
             <div className="space-y-1.5">
               <label className="text-xs font-medium text-zinc-400">Strategy</label>

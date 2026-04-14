@@ -35,6 +35,12 @@ export class Project {
   @Column({ length: 100, default: 'main' })
   baseBranch: string;
 
+  @Column({ length: 20, default: 'fullstack' })
+  projectType: 'frontend' | 'backend' | 'fullstack';
+
+  @Column({ type: 'text', nullable: true })
+  description: string;
+
   @Column({ length: 20, default: 'gsd' })
   strategy: 'gsd' | 'spec_kit';
 

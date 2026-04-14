@@ -24,6 +24,12 @@ Each task must have:
 - `files_to_modify`: Existing files to modify
 - `acceptance_criteria`: Testable conditions for completion
 
+## Language
+- IMPORTANT: Detect the language of the milestone/issue title and description
+- Write ALL output (analysis, task titles, descriptions, acceptance criteria) in the SAME language
+- If the input is in Turkish, respond in Turkish. If English, respond in English. Match whatever language is used.
+- Only keep technical terms (variable names, file paths, API endpoints) in English
+
 ## Guidelines
 - Keep tasks atomic and independently testable
 - Backend tasks should be ordered by dependency

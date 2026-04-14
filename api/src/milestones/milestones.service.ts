@@ -77,6 +77,8 @@ export class MilestonesService {
           description: milestone.description || '',
           strategy: milestone.strategy,
           policies: policyRules,
+          project_type: project.projectType || 'fullstack',
+          project_description: project.description || '',
         }),
       );
 
