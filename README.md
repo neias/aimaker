@@ -135,7 +135,7 @@ aimaker/
 │       ├── stores/         # Zustand stores
 │       └── lib/            # API client, WebSocket client
 │
-└── docker-compose.yml      # PostgreSQL + Redis (optional, can use brew services)
+└── docker-compose.yml      # All services (postgres, redis, api, engine, dashboard)
 ```
 
 ## Tech Stack
@@ -150,10 +150,7 @@ aimaker/
 
 ## Prerequisites
 
-- **Bun** (for NestJS API and Next.js dashboard)
-- **Python 3.11+** (for engine)
-- **PostgreSQL** (database)
-- **Redis** (event pub/sub)
+- **Docker** and **Docker Compose**
 - **Claude Code CLI** (`npm install -g @anthropic-ai/claude-code`)
 
 ## Setup
@@ -164,31 +161,61 @@ aimaker/
 git clone https://github.com/neias/aimaker.git
 cd aimaker
 cp .env.example .env
-# Edit .env with your PostgreSQL credentials
+# Edit .env if needed
 ```
 
-### 2. Database
+### 2. Start (Docker)
+
+```bash
+docker compose up -d
+```
+
+All 5 services start together:
+
+| Service | URL |
+|---------|-----|
+| **Dashboard** | http://localhost:3000 |
+| **API** | http://localhost:3001 |
+| **API Docs** | http://localhost:3001/api/docs |
+| **Engine** | http://localhost:8100 |
+
+```bash
+# View logs
+docker compose logs -f
+
+# Stop
+docker compose down
+```
+
+### Manual Setup (without Docker)
+
+<details>
+<summary>Click to expand</summary>
+
+**Requirements:** Bun, Python 3.11+, PostgreSQL, Redis
+
+#### Database
 
 ```bash
 # If using brew PostgreSQL:
 createuser aimaker --pwprompt   # password: aimaker_secret
 createdb aimaker -O aimaker
 
-# Or use Docker:
-docker-compose up -d
+# Or just the infra containers:
+docker compose up -d postgres redis
 ```
 
-### 3. API (Terminal 1)
+#### API (Terminal 1)
 
 ```bash
 cd api
 bun install
 bun run start:dev
-# Runs on http://localhost:3000
-# Swagger: http://localhost:3000/api/docs
+# Runs on http://localhost:3001
+# Swagger: http://localhost:3001/api/docs
 ```
 
-### 4. Engine (Terminal 2)
+#### Engine (Terminal 2)
 
 ```bash
 cd engine
@@ -199,14 +226,16 @@ aimaker-engine serve
 # Runs on http://localhost:8100
 ```
 
-### 5. Dashboard (Terminal 3)
+#### Dashboard (Terminal 3)
 
 ```bash
 cd dashboard
 bun install
-bun dev --port 3001
-# Runs on http://localhost:3001
+bun dev --port 3000
+# Runs on http://localhost:3000
 ```
+
+</details>
 
 ## Usage
 
@@ -299,7 +328,7 @@ REDIS_HOST=localhost
 REDIS_PORT=6379
 
 # Ports
-API_PORT=3000
+API_PORT=3001
 ENGINE_PORT=8100
 
 # GitHub (optional)
