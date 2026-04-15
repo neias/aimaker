@@ -36,7 +36,7 @@ services:
     container_name: aimaker-api
     restart: unless-stopped
     ports:
-      - "${API_PORT:-3000}:3000"
+      - "${API_PORT:-3001}:3001"
     env_file: .env
     environment:
       POSTGRES_HOST: postgres
@@ -64,12 +64,12 @@ services:
     build:
       context: ./dashboard
       args:
-        NEXT_PUBLIC_API_URL: http://localhost:${API_PORT:-3000}/api
-        NEXT_PUBLIC_WS_URL: http://localhost:${API_PORT:-3000}
+        NEXT_PUBLIC_API_URL: http://localhost:${API_PORT:-3001}/api
+        NEXT_PUBLIC_WS_URL: http://localhost:${API_PORT:-3001}
     container_name: aimaker-dashboard
     restart: unless-stopped
     ports:
-      - "3001:3001"
+      - "3000:3000"
     depends_on:
       - api
 

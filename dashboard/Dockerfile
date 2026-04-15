@@ -20,5 +20,5 @@ COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./
 COPY --from=builder /app/public ./public
 
-EXPOSE 3001
-CMD ["bun", "run", "start", "--port", "3001"]
+EXPOSE 3000
+CMD ["bun", "run", "start", "--port", "3000"]

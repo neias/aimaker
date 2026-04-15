@@ -10,5 +10,5 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN bun run build
 
-EXPOSE 3000
+EXPOSE 3001
 CMD ["bun", "dist/main.js"]

@@ -1,6 +1,6 @@
 import { useActivityStore } from '@/stores/activity-store';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 
 function logActivity(
   method: string,

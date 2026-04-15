@@ -10,8 +10,8 @@ async function bootstrap() {
 
   app.enableCors({
     origin: [
-      'http://localhost:3001',
-      'http://127.0.0.1:3001',
+      'http://localhost:3000',
+      'http://127.0.0.1:3000',
     ],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     credentials: true,
@@ -33,7 +33,7 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api/docs', app, document);
 
-  const port = process.env.API_PORT || 3000;
+  const port = process.env.API_PORT || 3001;
   await app.listen(port);
   console.log(`AIMAKER API running on port ${port}`);
   console.log(`Swagger: http://localhost:${port}/api/docs`);
