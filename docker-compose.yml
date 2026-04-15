@@ -31,6 +31,48 @@ services:
       timeout: 5s
       retries: 5
 
+  api:
+    build: ./api
+    container_name: aimaker-api
+    restart: unless-stopped
+    ports:
+      - "${API_PORT:-3000}:3000"
+    env_file: .env
+    environment:
+      POSTGRES_HOST: postgres
+      REDIS_HOST: redis
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  engine:
+    build: ./engine
+    container_name: aimaker-engine
+    restart: unless-stopped
+    ports:
+      - "${ENGINE_PORT:-8100}:8100"
+    env_file: .env
+    environment:
+      REDIS_HOST: redis
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  dashboard:
+    build:
+      context: ./dashboard
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:${API_PORT:-3000}/api
+        NEXT_PUBLIC_WS_URL: http://localhost:${API_PORT:-3000}
+    container_name: aimaker-dashboard
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    depends_on:
+      - api
+
 volumes:
   postgres_data:
   redis_data:
